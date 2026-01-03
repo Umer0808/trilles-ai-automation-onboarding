@@ -1,1 +1,176 @@
-
+{
+  "name": "DAY 1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "84c75141-4025-4593-a61c-023dddb9491b",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  { json: { \"F. Name\": \"Ali\", \"Email Address\": \"ali@gmail.com\" } },\n  { json: { \"First Name\": \"Sara\", \"email\": \"sara@company.com\" } },\n  { json: { \"Name\": \"Usman\", \"e-mail\": \"usman@yahoo.com\" } }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "72ca1c69-7c94-466d-8120-75f1aac0140b",
+      "name": "Mock csv input"
+    },
+    {
+      "parameters": {
+        "jsCode": "function normalizeKey(key) {\n  const k = key.toLowerCase();\n  if (k.includes(\"name\")) return \"firstName\";\n  if (k.includes(\"mail\")) return \"email\";\n  return null;\n}\n\nconst output = [];\n\nfor (const item of items) {\n  const normalized = {};\n  const errors = [];\n\n  for (const key of Object.keys(item.json)) {\n    const mappedKey = normalizeKey(key);\n    if (mappedKey) {\n      normalized[mappedKey] = item.json[key];\n    } else {\n      errors.push(`Unmapped field: ${key}`);\n    }\n  }\n\n  output.push({\n    json: {\n      data: normalized,\n      errors\n    }\n  });\n}\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "57d809f4-cc6b-4843-875c-63d4eb64a18e",
+      "name": "Headers+erros"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e059d2ec-2baf-4155-9935-9566ed4d7fed",
+              "leftValue": "={{$json[\"data\"][\"firstName\"]}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "a26850fc-5916-48a8-8431-b2fe5038f431",
+              "leftValue": "={{$json[\"data\"][\"email\"]}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "f20c0e95-4c98-4463-8a37-fb27a6c01f7f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({\n  json: {\n    firstName: item.json.data.firstName.trim(),\n    email: item.json.data.email.toLowerCase().trim()\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        -176
+      ],
+      "id": "9b41817c-ea66-4643-bbf2-b63813712f2d",
+      "name": "Result"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({\n  json: {\n    status: \"FAILED\",\n    reason: \"Schema validation failed\",\n    receivedData: item.json.data,\n    detectedIssues: item.json.errors,\n    timestamp: new Date().toISOString()\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        96
+      ],
+      "id": "3c9f6487-dae9-401a-8164-96600db9124f",
+      "name": "Error"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Mock csv input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock csv input": {
+      "main": [
+        [
+          {
+            "node": "Headers+erros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Headers+erros": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bdb136f9-13c4-465d-bbdd-45d3b7837cb4",
+  "meta": {
+    "instanceId": "4336b145959ff23d3b2c4c1bc598d2c66749dc17c5619b21f80d9eb126a30f47"
+  },
+  "id": "hh0kEplwXQDgvAsQ",
+  "tags": []
+}
