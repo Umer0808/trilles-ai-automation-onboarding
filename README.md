@@ -1,70 +1,100 @@
-1. Project Overview
+# JSON Normalization Workflow with n8n
 
-In this workflow, we focus on JSON normalization using n8n.
-The workflow handles messy CSV-like input with inconsistent headers, automatically detects and maps the headers to a consistent schema (firstName, email), and outputs clean, validated JSON.
+A production-ready n8n workflow that transforms messy CSV data with inconsistent headers into clean, validated JSON output. Built for automation pipelines at Trilles AI.
 
-This workflow serves as a foundation for future automation projects at Trilles AI, ensuring that all data entering our pipelines is structured and reliable.
+## 🎯 Overview
 
-2. Workflow Nodes
-| Node                                        | Type    | Purpose                                                                                                       |
-| ------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------- |
-| Manual Trigger                              | Trigger | Start the workflow manually                                                                                   |
-| Code Node: Mock CSV Input                   | Code    | Simulate incoming CSV data with inconsistent headers                                                          |
-| Code Node: Normalize Headers + Track Errors | Code    | Map dynamic headers to the strict schema and log any unmapped fields                                          |
-| IF Node: Schema Validation Gate             | IF      | Check that `firstName` and `email` are present. Route valid items forward and invalid items to error handling |
-| Code Node: Final Output                     | Code    | Produce clean, trimmed, validated JSON ready for downstream use                                               |
-| Code Node: Error Formatter                  | Code    | Format errors with detailed information for logging or notifications    |
+This workflow solves a common data integration challenge: handling CSV imports with inconsistent or varying column names. It automatically detects, maps, and validates data against a strict schema, ensuring all downstream systems receive reliable, structured data.
 
+### Key Features
 
-3. Logic Explanation
-Header Normalization
+- **Smart Header Detection**: Automatically maps variations like "F. Name", "fname", "First Name" → `firstName`
+- **Schema Validation**: Enforces required fields before data reaches downstream systems
+- **Error Tracking**: Captures unmapped fields and validation failures without breaking the workflow
+- **Production-Safe**: No silent failures—every error is logged with context
 
-The function normalizeKey() maps header variations like:
+## 🏗️ Architecture
 
-F. Name, Name, fname → firstName
+```
+Manual Trigger
+    ↓
+Mock CSV Input
+    ↓
+Normalize Headers + Track Errors
+    ↓
+Schema Validation Gate (IF Node)
+    ↓               ↓
+Valid Data    Invalid Data
+    ↓               ↓
+Final Output   Error Formatter
+```
 
-Email Address, e-mail → email
+## 📋 Workflow Nodes
 
-Any headers that cannot be mapped are captured in an errors array for review.
+| Node | Type | Purpose |
+|------|------|---------|
+| **Manual Trigger** | Trigger | Initiates workflow execution |
+| **Mock CSV Input** | Code | Simulates incoming CSV data with inconsistent headers |
+| **Normalize Headers** | Code | Maps dynamic headers to strict schema (`firstName`, `email`) |
+| **Schema Validation Gate** | IF | Routes valid/invalid records to appropriate handlers |
+| **Final Output** | Code | Produces clean, trimmed JSON for downstream consumption |
+| **Error Formatter** | Code | Structures error details for logging and monitoring |
 
-Schema Validation
+## 🔧 How It Works
 
-The IF Node checks that both firstName and email exist for each record.
+### 1. Header Normalization
 
-Valid records move to the Final Output node.
+The `normalizeKey()` function intelligently maps header variations:
 
-Invalid records are sent to the Error Formatter node for processing.
+```javascript
+// Example mappings
+"F. Name" → firstName
+"First Name" → firstName
+"fname" → firstName
+"Email Address" → email
+"e-mail" → email
+```
 
-Error Handling
+**Unmapped headers** are automatically captured in an error log for review.
 
-Errors are captured, not thrown, so the workflow does not fail silently.
+### 2. Schema Validation
 
-Each error object includes:
+The workflow enforces a strict schema with two required fields:
+- `firstName` (string)
+- `email` (string)
 
-status: FAILED
+Records missing either field are routed to error handling instead of failing silently.
 
-reason: Schema validation failed
+### 3. Error Handling
 
-receivedData and detectedIssues
+Each error includes comprehensive context:
 
-timestamp
+```json
+{
+  "status": "FAILED",
+  "reason": "Schema validation failed",
+  "receivedData": { "Name": "John" },
+  "detectedIssues": ["Missing required field: email"],
+  "timestamp": "2025-01-04T10:30:00.000Z"
+}
+```
 
-This makes the workflow robust, production-safe, and observable.
+## 📊 Sample Transformation
 
-4. Sample Input
-
+### Input (Messy CSV)
+```json
 [
   { "F. Name": "Ali", "Email Address": "ali@gmail.com" },
   { "First Name": "Sara", "email": "sara@company.com" },
   { "Name": "Usman", "e-mail": "usman@yahoo.com" }
 ]
+```
 
-After normalization, the output JSON will have a consistent schema:
+### Output (Clean JSON)
+```json
 [
   { "firstName": "Ali", "email": "ali@gmail.com" },
   { "firstName": "Sara", "email": "sara@company.com" },
   { "firstName": "Usman", "email": "usman@yahoo.com" }
 ]
-
-
-
+```
